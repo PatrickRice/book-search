@@ -6,13 +6,16 @@ import { Link } from "react-router-dom";
 import { Col, Row, Container } from "../components/Grid";
 import { List, ListItem } from "../components/List";
 import { Input, TextArea, FormBtn } from "../components/Form";
+import SearchResults from "../components/SearchResults";
 
 class Books extends Component {
   state = {
     books: [],
+    savedBooks: [],
     title: "",
     author: "",
-    synopsis: ""
+    description: "",
+    error: ""
   };
 
   componentDidMount() {
@@ -21,9 +24,11 @@ class Books extends Component {
 
   loadBooks = () => {
     API.getBooks()
-      .then(res =>
-        this.setState({ books: res.data, title: "", author: "", synopsis: "" })
-      )
+      .then(res => {
+        const results = res.data;
+        const googleIds = results.map(id => id.googleId);
+        this.setState({ savedBooks: googleIds })
+      })
       .catch(err => console.log(err));
   };
 
@@ -42,24 +47,52 @@ class Books extends Component {
 
   handleFormSubmit = event => {
     event.preventDefault();
-    if (this.state.title && this.state.author) {
-      API.saveBook({
-        title: this.state.title,
-        author: this.state.author,
-        synopsis: this.state.synopsis
+    this.setState({ books: [] });
+    let noSpaces = this.state.title.replace(/ /g, '+');
+    console.log("No Spaces: " + noSpaces);
+      API.getBookByTitle(noSpaces)
+      .then(res => {
+        if (res.data.status === "error") {
+          throw new Error(res.data.message);
+        }
+        this.setState({ books: res.data.items, error: "" });
+        // console.log("Res.data: " + JSON.stringify(res.data.items[0]));
       })
-        .then(res => this.loadBooks())
-        .catch(err => console.log(err));
+      .catch(err => this.setState({ error: err.message }))
+  }
+
+  handleBtnClick = event => {
+    // Get the data-value of the clicked button
+    const btnType = event.target.attributes.getNamedItem("dataValue").value;
+
+    console.log("btnType: " + btnType);
+    console.log("Book 1: " + this.state.books[1].id);
+
+    for (let i = 0; i<this.state.books.length; i++) {
+      if (btnType === this.state.books[i].id) {
+        API.saveBook({
+          googleId: this.state.books[i].id,
+          title: this.state.books[i].volumeInfo.title,
+          subtitle: this.state.books[i].volumeInfo.subtitle,
+          author: this.state.books[i].volumeInfo.authors,
+          description: this.state.books[i].volumeInfo.description,
+          image: this.state.books[i].volumeInfo.imageLinks.thumbnail,
+          link: this.state.books[i].volumeInfo.previewLink,
+          isSaved: true
+        })
+          .then(res => this.loadBooks())
+          .catch(err => console.log(err));
     }
+  }
   };
 
   render() {
     return (
       <Container fluid>
         <Row>
-          <Col size="md-6">
+          <Col size="md-9">
             <Jumbotron>
-              <h1>What Books Should I Read?</h1>
+              <h1>Search for Books by Title</h1>
             </Jumbotron>
             <form>
               <Input
@@ -68,27 +101,30 @@ class Books extends Component {
                 name="title"
                 placeholder="Title (required)"
               />
-              <Input
+              {/* <Input
                 value={this.state.author}
                 onChange={this.handleInputChange}
                 name="author"
                 placeholder="Author (required)"
               />
               <TextArea
-                value={this.state.synopsis}
+                value={this.state.description}
                 onChange={this.handleInputChange}
-                name="synopsis"
-                placeholder="Synopsis (Optional)"
-              />
+                name="description"
+                placeholder="Description (Optional)"
+              /> */}
               <FormBtn
-                disabled={!(this.state.author && this.state.title)}
+                disabled={!(this.state.title)}
                 onClick={this.handleFormSubmit}
               >
-                Submit Book
+                Search
               </FormBtn>
-            </form>
+            </form><br /><br />
+            <>
+            <SearchResults books={this.state.books} saved={this.state.savedBooks} onClick={this.handleBtnClick} />
+            </>
           </Col>
-          <Col size="md-6 sm-12">
+          {/* <Col size="md-6 sm-12">
             <Jumbotron>
               <h1>Books On My List</h1>
             </Jumbotron>
@@ -108,7 +144,7 @@ class Books extends Component {
             ) : (
               <h3>No Results to Display</h3>
             )}
-          </Col>
+          </Col> */}
         </Row>
       </Container>
     );
