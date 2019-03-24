@@ -13,6 +13,6 @@ App Process Flow:
 - React lifecycle mothods are used to refresh the DOM after a CRUD action is performed.
 
 Technoligies utilized:
-- React, MongoDB, Express, Node.js, Javascript (JSX), react-router-dom NPM, mongoose NPM, Google Books API
+- React, MongoDB, Express, Node.js, Javascript (JSX), react-router-dom NPM, mongoose NPM, Google Books API, CSS, HTML
 
 Deployed App Link: https://sleepy-escarpment-55833.herokuapp.com
